@@ -17,7 +17,7 @@ body {
 
 .contenedor-juego {
     width: 100%;
-    max-width: 720px;
+    max-width: 650px;
     background: #111827;
     border-radius: 20px;
     padding: 24px;
@@ -35,6 +35,7 @@ h1 {
     margin-bottom: 18px;
     color: #cbd5e1;
     line-height: 1.5;
+    font-size: 14px;
 }
 
 .panel-info {
@@ -47,28 +48,28 @@ h1 {
 
 .tarjeta-info {
     flex: 1;
-    min-width: 150px;
+    min-width: 120px;
     background: #1f2937;
-    padding: 14px;
+    padding: 12px;
     border-radius: 14px;
     border: 1px solid #374151;
 }
 
 .tarjeta-info span {
     display: block;
-    font-size: 14px;
+    font-size: 13px;
     color: #94a3b8;
     margin-bottom: 4px;
 }
 
 .tarjeta-info strong {
-    font-size: 24px;
+    font-size: 22px;
     color: #facc15;
 }
 
 canvas {
     width: 100%;
-    max-width: 600px;
+    max-width: 500px;
     background: #020617;
     border: 4px solid #22c55e;
     border-radius: 16px;
@@ -78,8 +79,8 @@ canvas {
 
 .controles {
     display: grid;
-    grid-template-columns: repeat(3, 90px);
-    gap: 10px;
+    grid-template-columns: repeat(3, 85px);
+    gap: 8px;
     justify-content: center;
     align-items: center;
     margin-bottom: 18px;
@@ -94,7 +95,7 @@ canvas {
     color: #052e16;
     font-weight: bold;
     cursor: pointer;
-    transition: 0.2s;
+    transition: transform 0.2s, background-color 0.2s;
 }
 
 .controles button:hover,
@@ -119,11 +120,17 @@ canvas {
     color: #082f49;
 }
 
+.acciones .secundario:hover {
+    background: #7dd3fc;
+}
+
 .mensaje {
-    margin-top: 14px;
+    margin-top: 16px;
     color: #e2e8f0;
     min-height: 24px;
+    font-size: 14px;
     font-weight: bold;
+    line-height: 1.4;
 }
 
 @media (max-width: 520px) {
@@ -132,11 +139,12 @@ canvas {
     }
 
     .controles {
-        grid-template-columns: repeat(3, 75px);
+        grid-template-columns: repeat(3, 70px);
     }
 
     .controles button,
     .acciones button {
         padding: 10px;
+        font-size: 14px;
     }
 }

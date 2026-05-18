@@ -10,21 +10,25 @@ const elementoMensaje = document.getElementById("mensaje");
 // TALLER 1: Tamaño de cada celda de la cuadrícula
 const TAMANIO_CELDA = 25;
 
-// PARTE 3 - CONFIGURACIÓN DE TIEMPO: Velocidad del bucle (en milisegundos)
-const VELOCIDAD_JUEGO = 130; 
+// TALLER 4 - ACTIVIDAD 3: Variable global de velocidad (en milisegundos)
+let velocidad = 300; 
 
-// Variables lógicas del estado de juego
+// Variables de control del flujo lógico
 let serpiente = [];
 let direccion = "derecha";
 let juegoEjecutandose = false;
 let intervaloJuego = null;
 let puntaje = 0;
+let estadoGameOver = false;
 
-// Inicializamos las variables por primera vez y dibujamos el estado inicial
-inicializarJuego();
+// NUEVA VARIABLE: Guarda la posición lógica de la comida en la grilla
+let comida = { x: 0, y: 0 };
 
-function inicializarJuego() {
-  // TALLER 2: Posición inicial de la serpiente (coordenadas de cuadrícula)
+// Inicializamos el entorno por primera vez
+configurarEstadoInicial();
+
+function configurarEstadoInicial() {
+  // Posición inicial fija de la serpiente
   serpiente = [
     { x: 7, y: 5 }, // Cabeza
     { x: 6, y: 5 }, // Cuerpo
@@ -33,37 +37,63 @@ function inicializarJuego() {
   ];
   direccion = "derecha";
   puntaje = 0;
+  estadoGameOver = false;
+  
   elementoPuntaje.innerText = puntaje;
+  
+  // Generamos la primera comida en una posición aleatoria del tablero
+  generarComida();
   dibujarTodo();
 }
 
 // ==========================================
-// TALLER 2: FUNCIONES DE DIBUJO DE LA SERPIENTE
+// NUEVA FUNCIÓN: GENERAR COMIDA ALEATORIA
+// ==========================================
+function generarComida() {
+  const limiteAnchoCeldas = canvas.width / TAMANIO_CELDA; // 500 / 25 = 20 celdas
+  const limiteAltoCeldas = canvas.height / TAMANIO_CELDA;
+
+  // Calculamos posiciones enteras aleatorias entre 0 y 19
+  comida.x = Math.floor(Math.random() * limiteAnchoCeldas);
+  comida.y = Math.floor(Math.random() * limiteAltoCeldas);
+
+  // MEJORA EXTRA: Evitar que la comida aparezca encima del cuerpo de la serpiente
+  for (let i = 0; i < serpiente.length; i++) {
+    if (serpiente[i].x === comida.x && serpiente[i].y === comida.y) {
+      generarComida(); // Si aparece encima, vuelve a calcular otra posición
+      break;
+    }
+  }
+}
+
+// ==========================================
+// FUNCIONES DE DIBUJO (SERPIENTE Y COMIDA)
 // ==========================================
 
-function pintarParte(lineaX, lineaY, esCabeza) {
+// Dibuja un cuadro en la cuadrícula usando multiplicación matemática de posiciones
+function pintarParte(lineaX, lineaY, color) {
   const posicionRealX = lineaX * TAMANIO_CELDA;
   const posicionRealY = lineaY * TAMANIO_CELDA;
 
-  // Ejercicio final del Taller 2: Diferente color para la cabeza
-  if (esCabeza) {
-    ctx.fillStyle = "#22c55e"; // Verde brillante para la cabeza
-  } else {
-    ctx.fillStyle = "#15803d"; // Verde oscuro para el cuerpo
-  }
-
+  ctx.fillStyle = color;
   ctx.fillRect(posicionRealX + 1, posicionRealY + 1, TAMANIO_CELDA - 2, TAMANIO_CELDA - 2);
 }
 
 function pintarSerpiente() {
   for (let i = 0; i < serpiente.length; i++) {
-    const esCabeza = (i === 0);
-    pintarParte(serpiente[i].x, serpiente[i].y, esCabeza);
+    // La cabeza tiene un verde brillante, el cuerpo un verde más oscuro
+    const colorSegmento = (i === 0) ? "#22c55e" : "#15803d";
+    pintarParte(serpiente[i].x, serpiente[i].y, colorSegmento);
   }
 }
 
+// NUEVA FUNCIÓN: Dibuja la comida en el canvas con un color llamativo (Rojo manzana)
+function pintarComida() {
+  pintarParte(comida.x, comida.y, "#ef4444"); 
+}
+
 // ==========================================
-// TALLER 1: FUNCIONES DE DIBUJO DEL TABLERO
+// TALLER 1: COMPONENTES DEL RENDER DEL TABLERO
 // ==========================================
 
 function limpiarCanvas() {
@@ -72,8 +102,9 @@ function limpiarCanvas() {
 
 function dibujarTodo() {
   limpiarCanvas();
-  dibujarTablero();   
-  pintarSerpiente();  
+  dibujarTablero();   // Rejilla base (Taller 1)
+  pintarComida();     // Cuadro de comida (¡Nuevo!)
+  pintarSerpiente();  // Cuerpo de la serpiente (Taller 2)
 }
 
 function dibujarTablero() {
@@ -86,7 +117,6 @@ function dibujarTablero() {
     ctx.lineTo(x, canvas.height);
     ctx.stroke();
   }
-
   for (let y = 0; y <= canvas.height; y += TAMANIO_CELDA) {
     ctx.beginPath();
     ctx.moveTo(0, y);
@@ -96,16 +126,15 @@ function dibujarTablero() {
 }
 
 // ==========================================
-// PARTE 3: LÓGICA DE MOVIMIENTO AUTOMÁTICO Y ACTUALIZACIÓN
+// TALLER 4 - ACTIVIDAD 1: NÚCLEO LÓGICO Y CRECIMIENTO
 // ==========================================
 
 function actualizarLogica() {
-  // Tomamos la posición actual de la cabeza
   const cabezaActual = serpiente[0];
   let proximaX = cabezaActual.x;
   let proximaY = cabezaActual.y;
 
-  // Calculamos la siguiente celda de la cuadrícula según la dirección actual
+  // Calculamos la dirección del paso
   switch (direccion) {
     case "arriba":    proximaY -= 1; break;
     case "abajo":     proximaY += 1; break;
@@ -113,78 +142,94 @@ function actualizarLogica() {
     case "derecha":   proximaX += 1; break;
   }
 
-  const nuevaCabeza = { x: proximaX, y: proximaY };
+  // ACTIVIDAD 1: Validación de choque en los 4 bordes del tablero
+  const limiteAnchoCeldas = canvas.width / TAMANIO_CELDA;
+  const limiteAltoCeldas = canvas.height / TAMANIO_CELDA;
 
-  // Control de colisiones con las paredes usando límites de cuadrícula (600 / 25 = 24 celdas)
-  const limiteCeldasX = canvas.width / TAMANIO_CELDA;
-  const limiteCeldasY = canvas.height / TAMANIO_CELDA;
-
-  if (proximaX < 0 || proximaX >= limiteCeldasX || proximaY < 0 || proximaY >= limiteCeldasY) {
+  if (proximaX < 0 || proximaX >= limiteAnchoCeldas || proximaY < 0 || proximaY >= limiteAltoCeldas) {
     clearInterval(intervaloJuego);
     juegoEjecutandose = false;
-    elementoEstado.innerText = "Fin";
-    elementoMensaje.innerText = "💥 ¡Te has estrellado contra la pared! Fin del juego.";
+    estadoGameOver = true;
+    elementoEstado.innerText = "GAME OVER";
+    elementoMensaje.innerText = "💥 ¡GAME OVER! Te estrellaste contra la pared. Presiona 'Reiniciar' para volver a jugar.";
     return;
   }
 
-  // Desplazamiento de la serpiente: agregamos la nueva cabeza al frente del arreglo
-  serpiente.unshift(nuevaCabeza);
+  const nuevaCabeza = { x: proximaX, y: proximaY };
   
-  // Retiramos la cola para mantener el mismo largo en movimiento estandar
-  serpiente.pop();
+  // Colocamos la nueva cabeza siempre al frente para avanzar
+  serpiente.unshift(nuevaCabeza);
+
+  // NUEVA LÓGICA: ¿La cabeza llegó a la misma casilla que la comida?
+  if (nuevaCabeza.x === comida.x && nuevaCabeza.y === comida.y) {
+    puntaje += 10;                     // Sumamos 10 puntos al marcador
+    elementoPuntaje.innerText = puntaje; // Actualizamos el HTML
+    generarComida();                   // Colocamos una nueva comida en otra parte
+    
+    // NOTA: Al NO hacer "serpiente.pop()", la serpiente mantiene el segmento extra y crece.
+  } else {
+    // Si no hay comida, removemos el último segmento para mantener el tamaño normal en movimiento
+    serpiente.pop();
+  }
 }
 
 // ==========================================
-// PARTE 3: GESTIÓN DE CONTROLES Y EVENTOS
+// CONTROLADORES DE EVENTOS
 // ==========================================
 
 function iniciarJuego() {
+  if (estadoGameOver) {
+    elementoMensaje.innerText = "⚠️ El juego ha terminado. Oprime el botón 'Reiniciar' para restablecer la grilla.";
+    return;
+  }
+
   if (!juegoEjecutandose) {
     juegoEjecutandose = true;
     elementoEstado.innerText = "Jugando";
-    elementoMensaje.innerText = "¡Usa las flechas del teclado o los botones en pantalla!";
+    elementoMensaje.innerText = "¡Usa los controles para devorar la comida roja!";
     
-    // Ejecución cíclica continua del juego
     intervaloJuego = setInterval(() => {
       actualizarLogica();
       dibujarTodo();
-    }, VELOCIDAD_JUEGO);
+    }, velocidad);
   }
 }
 
 function pausarJuego() {
-  if (juegoEjecutandose) {
+  if (juegoEjecutandose && !estadoGameOver) {
     clearInterval(intervaloJuego);
     juegoEjecutandose = false;
     elementoEstado.innerText = "Pausado";
-    elementoMensaje.innerText = "Juego en pausa. Presiona Iniciar para continuar.";
+    elementoMensaje.innerText = "Juego en pausa. Oprime 'Iniciar' para continuar.";
   }
 }
 
+// ACTIVIDAD 2: Botón Reiniciar restablece puntaje, comida y posiciones
 function reiniciarJuego() {
   clearInterval(intervaloJuego);
   juegoEjecutandose = false;
   elementoEstado.innerText = "Listo";
   elementoMensaje.innerText = "Presiona iniciar para comenzar.";
-  inicializarJuego();
+  configurarEstadoInicial();
 }
 
+// ACTIVIDAD 4: Evitar retrocesos bruscos de 180 grados
 function cambiarDireccion(nuevaDireccion) {
-  // Validación estricta para evitar que gire de golpe hacia el lado contrario
+  if (estadoGameOver) return;
+
   if (nuevaDireccion === "arriba" && direccion !== "abajo") direccion = "arriba";
   if (nuevaDireccion === "abajo" && direccion !== "arriba") direccion = "abajo";
   if (nuevaDireccion === "izquierda" && direccion !== "derecha") direccion = "izquierda";
   if (nuevaDireccion === "derecha" && direccion !== "izquierda") direccion = "derecha";
 }
 
-// NUEVO: Escuchador de eventos del teclado para que se pueda jugar con las flechas físicas
 document.addEventListener("keydown", (evento) => {
   switch (evento.key) {
     case "ArrowUp":    cambiarDireccion("arriba");    break;
     case "ArrowDown":  cambiarDireccion("abajo");     break;
     case "ArrowLeft":  cambiarDireccion("izquierda"); break;
     case "ArrowRight": cambiarDireccion("derecha");   break;
-    case " ":          // Barra espaciadora para pausar/despausar rápidamente
+    case " ":
       evento.preventDefault();
       if (juegoEjecutandose) pausarJuego(); else iniciarJuego();
       break;
