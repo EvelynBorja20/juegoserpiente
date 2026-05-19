@@ -214,13 +214,26 @@ function reiniciarJuego() {
 }
 
 // ACTIVIDAD 4: Evitar retrocesos bruscos de 180 grados
+/**
+ * REQUERIMIENTO: Bloqueo de dirección opuesta (Evitar regreso sobre su propio cuerpo)
+ * Valida de forma estricta que la nueva dirección ingresada no sea la contraria a la actual.
+ */
 function cambiarDireccion(nuevaDireccion) {
-  if (estadoGameOver) return;
+  if (estadoGameOver) return; // Congela los controles si la partida terminó
 
-  if (nuevaDireccion === "arriba" && direccion !== "abajo") direccion = "arriba";
-  if (nuevaDireccion === "abajo" && direccion !== "arriba") direccion = "abajo";
-  if (nuevaDireccion === "izquierda" && direccion !== "derecha") direccion = "izquierda";
-  if (nuevaDireccion === "derecha" && direccion !== "izquierda") direccion = "derecha";
+  // Validación estricta de sentidos cruzados: Derecha ↔ Izquierda y Arriba ↔ Abajo
+  if (nuevaDireccion === "arriba" && direccion !== "abajo") {
+    direccion = "arriba";
+  }
+  else if (nuevaDireccion === "abajo" && direccion !== "arriba") {
+    direccion = "abajo";
+  }
+  else if (nuevaDireccion === "izquierda" && direccion !== "derecha") {
+    direccion = "izquierda";
+  }
+  else if (nuevaDireccion === "derecha" && direccion !== "izquierda") {
+    direccion = "derecha";
+  }
 }
 
 document.addEventListener("keydown", (evento) => {
